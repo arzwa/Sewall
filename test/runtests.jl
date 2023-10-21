@@ -98,5 +98,22 @@ end
     end
 end
 
-
+@testset "Mainland-island model" begin
+    s = 0.05
+    u = s/200
+    A = Architecture([Locus(-s, 0.0, 0.0, u, u)], Float64[])
+    D = Deme(N=220, k=5, A=A)
+    y = FixedMainland([true], ([true],[true]))
+    M = MainlandIsland(D, s*0.2, 0.0, y)
+    ps = map(1:10) do _
+        P = initpop(rng, M, rand(length(A))) 
+        map(1:20000) do _
+            generation!(rng, M, P)
+        end 
+        sum(P.haploids) ./ D.N
+    end
+    d, = eqpdf(M)
+    se = √(var(d) / length(ps))
+    @test abs(mean(ps) - (1-mean(d))) < 2se
+end
 

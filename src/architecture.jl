@@ -51,7 +51,7 @@ struct Architecture{T} <: AbstractVector{T}
     end
 end
 Architecture(ls::Vector{Locus{T}}, r::Vector{V}) where {T,V} = Architecture(ls, map(T, r))
-Architecture(ls::Vector{Locus}) = Architecture(ls, fill(0.5, length(ls)-1))
+Architecture(ls::Vector{Locus{T}}) where T = Architecture(ls, fill(0.5, length(ls)-1))
 Architecture(l::Locus, L::Int) = Architecture([l for i=1:L], fill(0.5, L-1))
 Architecture(l::Locus, L::Int, r) = Architecture([l for i=1:L], fill(r, L-1))
 
