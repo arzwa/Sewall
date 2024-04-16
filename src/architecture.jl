@@ -1,4 +1,6 @@
 # Locus definition
+abstract type AbstractLocus end
+
 """
     Locus(s1, s01, s11)
 
@@ -6,7 +8,7 @@ Biallelic locus subject to selection in both the haploid and diploid phase of a
 sexual life cycle.  Relative fitness of `0` allele is assumed to be 1 in both
 haploids and diploid homozygotes.
 """
-struct Locus{T}
+struct Locus{T} <: AbstractLocus
     s1  :: T  # haploid derived allele selection coefficient
     s01 :: T  # diploid heterozygous effect
     s11 :: T  # diploid homozygous effect
@@ -40,17 +42,16 @@ Genetic architecture, consists of a bunch of loci with certain effects, and a
 linkage map (recombination rates). We assume `rrate[i]` gives the **probability
 of a crossover** between locus `i` and locus `i+1`. 
 """
-struct Architecture{T} <: AbstractVector{T}
-    loci ::Vector{Locus{T}}
-    r    ::Vector{T}  # recombination fractions between neighboring loci
-    R    ::Matrix{T}  # recombination rates between all loci
-    function Architecture(loci::Vector{Locus{T}}, r::Vector{T}) where T
+struct Architecture{T,V} <: AbstractVector{T}
+    loci ::Vector{T}
+    r    ::Vector{V}  # recombination fractions between neighboring loci
+    R    ::Matrix{V}  # recombination rates between all loci
+    function Architecture(loci::Vector{T}, r::Vector{V}) where {T<:AbstractLocus,V}
         @assert(length(r) == length(loci) - 1,
                 "Recombination fraction vector does not match # of loci.")
-        new{T}(loci, r, rrates(r))
+        new{T,V}(loci, r, rrates(r))
     end
 end
-Architecture(ls::Vector{Locus{T}}, r::Vector{V}) where {T,V} = Architecture(ls, map(T, r))
 Architecture(ls::Vector{Locus{T}}) where T = Architecture(ls, fill(0.5, length(ls)-1))
 Architecture(l::Locus, L::Int) = Architecture([l for i=1:L], fill(0.5, L-1))
 Architecture(l::Locus, L::Int, r) = Architecture([l for i=1:L], fill(r, L-1))
@@ -63,21 +64,6 @@ Base.vcat(A1::Architecture, A2::Architecture) = Architecture(vcat(A1.loci, A2.lo
 
 haploidfitness(l::Architecture, g) = mapreduce(x->haploidfitness(x...), +, zip(l, g))
 diploidfitness(l::Architecture, h1, h2) = mapreduce(x->diploidfitness(x...), +, zip(l, h1, h2))
-
-
-# Haldane's mapping function
-haldane(y) = 0.5*(1-exp(-y))
-invhaldane(x) = -log(1 - 2x)
-
-# Compute recombination rates across a linear genome based on pairwise
-# recombination fractions
-rrates(xs) = hcat(rrates.(Ref(xs), 1:length(xs)+1)...)
-function rrates(xs, j)
-    ys = invhaldane.(xs)
-    left = reverse(cumsum(ys[j-1:-1:1]))
-    rght = cumsum(ys[j:end])
-    [haldane.(left); NaN; haldane.(rght)]
-end
 
 #haploidfitness(A::Architecture, g) = haploidfitness(A.loci, g)
 #diploidfitness(A::Architecture, g) = diploidfitness(A.loci, g)
@@ -96,3 +82,15 @@ function lognormalize(l)
     x = exp.(l .- maximum(l))
     return x ./ sum(x)
 end
+
+function randarch(loci, M=humanmap)
+    L = length(loci)
+    _, _, rs = randloci(M, L)
+    Architecture(loci, rs)
+end
+
+function randarch_neutral(loci, n, neutral_locus, M=GeneticMap(human_data()))
+    all_loci, _, rs = randloci_neutral(M, loci, n, neutral_locus)
+    Architecture(all_loci, rs)
+end
+

@@ -1,18 +1,20 @@
 # Populations and demes
+abstract type AbstractDeme end
+
 """
     Deme
 
 Simple model for a haplodiplontic deme, with a discrete and synchronized
 alternation of generations between N haploids and Nk diploids.
 """
-@with_kw struct Deme{U<:Architecture}
+@with_kw struct Deme{U<:Architecture} <: AbstractDeme
     N ::Int
     k ::Int
     Ne::Float64 = 1/(1/N + 1/(2N*k))
     A ::U  # genetic architecture
 end
 
-nloci(d::Deme) = length(d.A)
+nloci(d::AbstractDeme) = length(d.A)
 Ne2N(Ne, k) = ceil(Int, Ne/2k + Ne)
 
 function eqpdf(d::Deme)
@@ -33,7 +35,7 @@ end
 # We assume biallelic stuff, but we could if desired generalize by specializing
 # function on the genetic architecture type (which should imply what represents
 # an allele).
-function initpop(rng::AbstractRNG, deme::Deme, p::AbstractVector)
+function initpop(rng::AbstractRNG, deme::AbstractDeme, p::AbstractVector)
     @unpack N, k = deme; L = length(p); Nk = N*k
     @assert L == nloci(deme) "Length of initial allele frequency vector does not match the genetic architecture"
     haploids = Matrix{Bool}(undef, N, L)
@@ -62,7 +64,7 @@ function diploidfitness!(deme::Deme, pop::Population)
     pop.dfitness .= lognormalize(pop.dfitness)
 end
 
-function haploidphase!(rng::AbstractRNG, deme::Deme, pop)
+function haploidphase!(rng::AbstractRNG, deme::AbstractDeme, pop)
     @unpack N, k = deme; Nk = N*k
     haploidfitness!(deme, pop)
     idx = sample(rng, 1:N, Weights(pop.hfitness), 2Nk, replace=true)
@@ -71,7 +73,7 @@ function haploidphase!(rng::AbstractRNG, deme::Deme, pop)
     end
 end
 
-function diploidphase!(rng::AbstractRNG, deme::Deme, pop)
+function diploidphase!(rng::AbstractRNG, deme::AbstractDeme, pop)
     @unpack N, k = deme; Nk = N*k
     diploidfitness!(deme, pop)
     idx = sample(rng, 1:Nk, Weights(pop.dfitness), N, replace=true)
@@ -83,7 +85,7 @@ function diploidphase!(rng::AbstractRNG, deme::Deme, pop)
     mutation!(rng, pop.haploids, deme.A)
 end
 
-function generation!(rng::AbstractRNG, deme::Deme, pop)
+function generation!(rng::AbstractRNG, deme::AbstractDeme, pop)
     haploidphase!(rng, deme, pop)
     diploidphase!(rng, deme, pop)
 end

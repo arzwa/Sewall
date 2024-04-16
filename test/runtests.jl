@@ -18,7 +18,7 @@ using Test, Random; rng = Random.default_rng()
     # what would be a statistical test for the variance?
 end
 
-# Test mutation-selectioni-drift balance
+# Test mutation-selection-drift balance
 @testset "Mutation-selection-drift balance" begin
     s = 0.05
     u = s/10

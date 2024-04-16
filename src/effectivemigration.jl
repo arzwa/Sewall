@@ -17,11 +17,13 @@ function equilibrium(M::MainlandIsland, p=ones(nloci(M)); tol=1e-9, kwargs...)
     end
 end
 
-function eqgff(M::MainlandIsland)
-    @unpack A = M.deme 
-    ds = equilibrium(M)
-    pm = float.(M.mainland.haploid)
-    map(i->(ds[i].B - A[i].u01)/(2ds[i].Ne*pm[i]), 1:length(ds))
+function eqgff(M::MainlandIsland, ds)
+    migrant = GenePool(M.mainland)
+    resident = GenePool(mean.(ds), expectedpq.(ds))
+    @unpack mhap, mdip, deme = M
+    @unpack A = deme
+    gs = gffs(A, mhap+mdip, resident, migrant)
+    first.(gs) .* mhap .+ last.(gs) .* mdip
 end
 
 struct GenePool{T}
@@ -39,7 +41,7 @@ function pdfs(M::MainlandIsland, focal, migrant)
     @unpack p, pq = migrant
     @unpack mhap, mdip, deme = M
     @unpack A = deme
-    gs = gffs(A, focal, migrant)
+    gs = gffs(A, mhap+mdip, focal, migrant)
     map(1:length(A)) do i
         sa, sb = sasb(A[i])
         me = gs[i][1]*mhap + gs[i][2]*mdip
@@ -52,15 +54,15 @@ function pdfs(M::MainlandIsland, focal, migrant)
     end
 end
 
-gffs(A::Architecture, x, y) = map(j->gff(A, x, y, j), 1:length(A))
+gffs(A::Architecture, m, x, y) = map(j->gff(A, m, x, y, j), 1:length(A))
 
-function gff(A::Architecture, focal::GenePool, migrant::GenePool, j::Int)
+function gff(A::Architecture, m, focal::GenePool, migrant::GenePool, j::Int)
     @unpack p, pq = focal
     y, yz = migrant.p, migrant.pq
     x0 = x1 = 0.0
     for i=1:length(A)
         i == j && continue
-        hap, dip = locuseffect(A[i], p[i], pq[i], y[i], yz[i], A.R[i,j])
+        hap, dip = locuseffect(A[i], p[i], pq[i], y[i], yz[i], A.R[i,j], m)
         x0 += hap
         x1 += dip
     end
@@ -71,13 +73,29 @@ end
 
 # The contribution of `locus` to the gff at a (possibly linked) locus with
 # recombination probability `r`
-function locuseffect(locus, p, pq, y, yz, r)
+function locuseffect(locus, p, pq, y, yz, r, m)
     @unpack s1, s01, s11 = locus
     sa, sb = sasb(locus)
     q = 1 - p; z = 1 - y
-    hap = ( sa*(y - q) + sb*(pq - z*q)) / r  # haploid migration
-    dip = (s11*(y - q) + sb*(pq - yz))  / r  # diploid migration extra factor
+    denom = m + r - sa*(p - q) - sb*(2pq - q)
+    # denom = min(0.5, denom)
+    # should we do `denom = min(0.5,denom)`?
+    #denom = min(0.5, denom)  
+    hap = ( sa*(y - q) + sb*(pq - z*q)) / denom  # haploid migration
+    dip = (s11*(y - q) + sb*(pq - yz))  / denom  # diploid migration extra factor
+    # XXX should the latter only have mdip in the denominator? Guess not --
+    # it's coming from long term migration?
     hap, dip
 end
 
-
+# (in)finite islands
+function equilibrium(M::FiniteIslands; tol=1e-9, kwargs...)
+    migrant = GenePool(M.mainland)
+    dists = pdfs(M, GenePool(p, p .* (1 .- p)), migrant)
+    while true
+        dists = pdfs(M, GenePool(p, expectedpq.(dists)), migrant)
+        Ep = mean.(dists)
+        norm(Ep .- p) < tol && return dists
+        p = Ep
+    end
+end
