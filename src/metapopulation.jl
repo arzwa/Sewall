@@ -3,6 +3,7 @@
 # other localities of the previous generation proportional to local fitness
 # instead of maintaining the conceptual distinction between selection
 # and migration?
+# XXX This is now done, right?
 
 struct FiniteIslands{A,T}
     demes :: Vector{Deme{A}}

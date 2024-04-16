@@ -37,6 +37,10 @@ function generation!(rng::AbstractRNG, model::MainlandIsland, pop)
     diploidphase!(rng, model, pop)
 end
 
+
+# XXX I guess it could be more efficient if we only track haploid genomes, keeping
+# them twice in memory for copying (i.e. representing diploids as (i,j), where
+# i, j are indices for the haploid genomes).
 function haploidphase!(rng::AbstractRNG, model::MainlandIsland, pop)
     @unpack deme, mdip, mainland = model
     @unpack N, k = deme; Nk = N*k

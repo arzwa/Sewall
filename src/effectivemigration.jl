@@ -17,6 +17,12 @@ function equilibrium(M::MainlandIsland, p=ones(nloci(M)); tol=1e-9, kwargs...)
     end
 end
 
+"""
+    eqgff(M::MainlandIsland [, ds::Vector{Wright}])
+
+Return the equilibrium gff values.
+"""
+eqgff(M::MainlandIsland) = eqgff(M, equilibrium(M))
 function eqgff(M::MainlandIsland, ds)
     migrant = GenePool(M.mainland)
     resident = GenePool(mean.(ds), expectedpq.(ds))
@@ -34,6 +40,13 @@ end
 function GenePool(m::FixedMainland)
     p = float.(m.haploid)  # XXX not sure what to do when haploid != diploid 
     pq = p .* (1 .- p)
+    GenePool(p, pq)
+end
+
+function GenePool(m::Deme)
+    ds = eqpdf(m)
+    p  = 1 .- mean.(ds)
+    pq = expectedpq.(ds)
     GenePool(p, pq)
 end
 
