@@ -10,9 +10,34 @@ end
 
 nloci(m::MainlandIsland) = length(m.deme.A)
 
+"""
+    FixedMainland{T}
+
+A mainland which is fixed for a particular genotype.
+"""
 struct FixedMainland{T}
     haploid :: Vector{T}
     diploid :: Tuple{Vector{T},Vector{T}}
+end
+
+diploidmigrant(_::AbstractRNG, m::FixedMainland) = m.diploid
+haploidmigrant(_::AbstractRNG, m::FixedMainland) = m.haploid
+
+"""
+    HWLEMainland
+
+A mainland which is at HWLE with alelle frequencies `p`.
+"""
+struct HWLEMainland{T}
+    p :: Vector{T}
+end
+
+function diploidmigrant(r::AbstractRNG, m::HWLEMainland)
+    (haploidmigrant(r, m), haploidmigrant(r, m))
+end
+
+function haploidmigrant(r::AbstractRNG, m::HWLEMainland)
+    rand(r, length(m.p)) .< m.p
 end
 
 function eqpdf(M::MainlandIsland)
@@ -23,9 +48,6 @@ function eqpdf(M::MainlandIsland)
         Wright(Ne, u01, mhap + mdip + u10, sasb(A[i])...)
     end
 end
-
-diploidmigrant(_::AbstractRNG, m::FixedMainland) = m.diploid
-haploidmigrant(_::AbstractRNG, m::FixedMainland) = m.haploid
 
 initpop(model, p0) = initpop(Random.default_rng(), model, p0)
 initpop(rng::AbstractRNG, model::MainlandIsland, p0) = initpop(rng, model.deme, p0)

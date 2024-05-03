@@ -18,8 +18,8 @@ struct FiniteIslands{A,T}
         d   = length(demes) 
         Ns  = [D.N for D in demes]
         Nks = [D.N*D.k for D in demes]
-        Mhap = [mhap[i]/d .*  Ns[j] for i=1:d, j=1:d]
-        Mdip = [mdip[i]/d .* Nks[j] for i=1:d, j=1:d]
+        Mhap = [mhap[i]/(d-1) .*  Ns[j] for i=1:d, j=1:d]
+        Mdip = [mdip[i]/(d-1) .* Nks[j] for i=1:d, j=1:d]
         # there are two ways to see this: either m is the proportion of migrant
         # individuals, in which case the denominator should be d-1, or m is the
         # proportion of individuals drawn from the whole population (while 1-m

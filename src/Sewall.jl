@@ -34,8 +34,8 @@ include("deterministic.jl")
 
 vvcat(x) = vcat(x...)
 
-export Locus, Architecture, Deme, FiniteIslands, MainlandIsland, FixedMainland
-export generation!, initpop, vvcat, sasb, sehe, Ne2N, eqpdf, simulate!
+export Locus, Architecture, Deme, FiniteIslands, MainlandIsland, FixedMainland, HWLEMainland
+export generation!, initpop, vvcat, sasb, sehe, Ne2N, eqpdf, simulate!, equilibrium
 export humanmap, humanmap2, flymap, flymap2
 
 end # module Sewall

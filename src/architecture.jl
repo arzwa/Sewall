@@ -68,6 +68,8 @@ diploidfitness(l::Architecture, h1, h2) = mapreduce(x->diploidfitness(x...), +, 
 #haploidfitness(A::Architecture, g) = haploidfitness(A.loci, g)
 #diploidfitness(A::Architecture, g) = diploidfitness(A.loci, g)
 
+mappositions(A::Architecture) = [0.0; cumsum(invhaldane.(A.r))]
+
 function summarize(A::Architecture)
     L = length(A)
     w = countmap(A.loci)
