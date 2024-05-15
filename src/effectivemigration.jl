@@ -11,7 +11,7 @@ function equilibrium(M::MainlandIsland, p=ones(nloci(M)); tol=1e-9, kwargs...)
     dists = pdfs(M, GenePool(p, p .* (1 .- p)), migrant)
     while true
         dists = pdfs(M, GenePool(p, expectedpq.(dists)), migrant)
-        Ep = mean.(dists)
+        Ep = mean.(dists; kwargs...)
         norm(Ep .- p) < tol && return dists
         p = Ep
     end
@@ -25,7 +25,7 @@ Return the equilibrium gff values.
 eqgff(M::MainlandIsland) = eqgff(M, equilibrium(M))
 eqgff(M::MainlandIsland, ds) = eqgff(M, mean.(ds), expectedpq.(ds))
 function eqgff(M::MainlandIsland, Ep, Epq)
-    migrant = GenePool(M.mainland)
+    migrant  = GenePool(M.mainland)
     resident = GenePool(Ep, Epq)
     @unpack mhap, mdip, deme = M
     @unpack A = deme
@@ -125,14 +125,15 @@ end
 
 # Calculate an m_e profile by adding `n` neutral loci on the map and
 # calculating local m_e.
-function meprofile(M::MainlandIsland, n)
+# Need to deal with Inf map distances...
+function meprofile(M::MainlandIsland, n; left=0.0, right=0.0)
     @unpack A = M.deme
     ds = equilibrium(M)
     p  = mean.(ds)
     pq = expectedpq.(ds)
     # neutral loci 
     mappos = mappositions(A)
-    extra = range(start=0.0, stop=maximum(mappos), length=n+2)[2:end-1]
+    extra = range(start=0.0-left, stop=maximum(mappos)+right, length=n+2)[2:end-1]
     xs = [mappos; extra]
     o  = sortperm(xs)
     oi = invperm(o)

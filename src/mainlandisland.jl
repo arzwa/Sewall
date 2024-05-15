@@ -1,27 +1,30 @@
 """
     MainlandIsland
 """
-struct MainlandIsland{A,M,T}
+@with_kw struct MainlandIsland{A,M,T}
     deme :: Deme{A}
     mhap :: T
     mdip :: T
     mainland :: M
+    @assert nloci(mainland) == nloci(deme)
 end
 
-nloci(m::MainlandIsland) = length(m.deme.A)
+nloci(m::MainlandIsland) = length(m.deme)
 
 """
     FixedMainland{T}
 
 A mainland which is fixed for a particular genotype.
 """
-struct FixedMainland{T}
+@with_kw struct FixedMainland{T}
     haploid :: Vector{T}
     diploid :: Tuple{Vector{T},Vector{T}}
+    @assert length(haploid) == length(diploid[1]) == length(diploid[2])
 end
 
 diploidmigrant(_::AbstractRNG, m::FixedMainland) = m.diploid
 haploidmigrant(_::AbstractRNG, m::FixedMainland) = m.haploid
+nloci(m::FixedMainland) = length(m.haploid)
 
 """
     HWLEMainland
@@ -31,6 +34,8 @@ A mainland which is at HWLE with alelle frequencies `p`.
 struct HWLEMainland{T}
     p :: Vector{T}
 end
+
+nloci(m::HWLEMainland) = length(m.p)
 
 function diploidmigrant(r::AbstractRNG, m::HWLEMainland)
     (haploidmigrant(r, m), haploidmigrant(r, m))
