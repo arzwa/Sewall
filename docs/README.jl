@@ -19,6 +19,9 @@
 # After executing these steps, one should be able to load the package using
 # `using Sewall` in the julia REPL.
 
+# Code for generating the figures in the main text of Zwaenepoel *et al.*
+# (2024) can be found in `docs/figs-zwaenepoel2024`.
+
 # ## Example
 
 using Sewall, Distributions, Random; Random.seed!(12)
@@ -69,3 +72,4 @@ vcat(xs...)[end-10:end,1:5]
 #
 # If you have **any questions** on how to install, use, ... the package, *do
 # not hesitate to open an issue*, I'd be happy to help.
+

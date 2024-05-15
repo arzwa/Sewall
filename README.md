@@ -19,6 +19,9 @@ To install the package:
 After executing these steps, one should be able to load the package using
 `using Sewall` in the julia REPL.
 
+Code for generating the figures in the main text of Zwaenepoel *et al.*
+(2024) can be found in `docs/figs-zwaenepoel2024`.
+
 ## Example
 
 ````julia
