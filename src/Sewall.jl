@@ -31,6 +31,7 @@ include("effectivemigration.jl")
 include("utils.jl")
 include("qtrait.jl")
 include("deterministic.jl")
+include("dfe.jl")
 
 vvcat(x) = vcat(x...)
 
