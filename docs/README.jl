@@ -46,7 +46,7 @@ A[1:5]
 # This defines a mainland-island model with `N` haploid individuals per
 # generation, `N*k` diploid individuals per generation, genetic architecture `A`, haploid migration rate `m1`,
 # diploid migration rate `m2` and mainland allele frequencies `y` 
-N  = 500
+N  = 550
 k  = 5
 D  = Deme(N=N, k=k, A=A)
 m1 = s̄*0.4
