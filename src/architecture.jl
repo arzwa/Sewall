@@ -70,6 +70,14 @@ diploidfitness(l::Architecture, h1, h2) = mapreduce(x->diploidfitness(x...), +, 
 
 mappositions(A::Architecture) = [0.0; cumsum(invhaldane.(A.r))]
 
+#mappositions(r::Vector) = r == [0.5] ? [0.0] : [0.0; cumsum(invhaldane.(r))]
+
+#function mappositions(A::Architecture)
+#    idx = [1 ; findall(x->x==0.5, A.r)]
+#    elems = [A.r[idx[i-1]:idx[i]-1] for i=2:length(idx)]
+#    mappositions.(elems)
+#end
+
 function summarize(A::Architecture)
     L = length(A)
     w = countmap(A.loci)

@@ -20,7 +20,7 @@ end
 """
     eqgff(M::MainlandIsland [, ds::Vector{Wright}])
 
-Return the equilibrium gff values.
+Return the equilibrium me values.
 """
 eqgff(M::MainlandIsland) = eqgff(M, equilibrium(M))
 eqgff(M::MainlandIsland, ds) = eqgff(M, mean.(ds), expectedpq.(ds))
@@ -29,7 +29,12 @@ function eqgff(M::MainlandIsland, Ep, Epq)
     resident = GenePool(Ep, Epq)
     @unpack mhap, mdip, deme = M
     @unpack A = deme
-    gs = gffs(A, mhap+mdip, resident, migrant)
+    gffs(A, mhap+mdip, resident, migrant)
+end
+
+function eqme(M::MainlandIsland, args...)
+    @unpack mhap, mdip, deme = M
+    gs = eqgff(M, args...)
     first.(gs) .* mhap .+ last.(gs) .* mdip
 end
 
@@ -126,14 +131,15 @@ end
 # Calculate an m_e profile by adding `n` neutral loci on the map and
 # calculating local m_e.
 # Need to deal with Inf map distances...
-function meprofile(M::MainlandIsland, n; left=0.0, right=0.0)
+function meprofile(M::MainlandIsland, n; start=0.0, stop=Inf)
     @unpack A = M.deme
     ds = equilibrium(M)
     p  = mean.(ds)
     pq = expectedpq.(ds)
     # neutral loci 
     mappos = mappositions(A)
-    extra = range(start=0.0-left, stop=maximum(mappos)+right, length=n+2)[2:end-1]
+    stop  = isfinite(stop) ? stop : maximum(mappos)
+    extra = range(start=start, stop=stop, length=n+2)[2:end-1]
     xs = [mappos; extra]
     o  = sortperm(xs)
     oi = invperm(o)
@@ -144,6 +150,7 @@ function meprofile(M::MainlandIsland, n; left=0.0, right=0.0)
     rs = haldane.(ds)  # XXX this is silly, as the first step of rrates is invhaldane...
     R  = rrates(rs)
     RR = [R[i,j] for i in sx, j in nx]
+    RR[isnan.(RR)] .= 0.5
     # calculate
     migrant = GenePool(M.mainland)
     y, yz = migrant.p, migrant.pq

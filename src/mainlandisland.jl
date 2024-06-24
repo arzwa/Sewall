@@ -9,7 +9,7 @@
     @assert nloci(mainland) == nloci(deme)
 end
 
-nloci(m::MainlandIsland) = length(m.deme)
+nloci(m::MainlandIsland) = nloci(m.deme)
 
 """
     FixedMainland{T}
@@ -20,6 +20,10 @@ A mainland which is fixed for a particular genotype.
     haploid :: Vector{T}
     diploid :: Tuple{Vector{T},Vector{T}}
     @assert length(haploid) == length(diploid[1]) == length(diploid[2])
+end
+
+function Base.getindex(m::FixedMainland, i::UnitRange) 
+    FixedMainland(m.haploid[i], (m.diploid[1][i], m.diploid[2][i]))
 end
 
 diploidmigrant(_::AbstractRNG, m::FixedMainland) = m.diploid
@@ -34,6 +38,8 @@ A mainland which is at HWLE with alelle frequencies `p`.
 struct HWLEMainland{T}
     p :: Vector{T}
 end
+
+Base.getindex(m::HWLEMainland, i::UnitRange) = HWLEMainland(m.p[i])
 
 nloci(m::HWLEMainland) = length(m.p)
 
@@ -52,6 +58,18 @@ function eqpdf(M::MainlandIsland)
         @unpack u01, u10 = A[i]
         Wright(Ne, u01, mhap + mdip + u10, sasb(A[i])...)
     end
+end
+
+function singlelocuseq(M::MainlandIsland)
+    map(1:nloci(M)) do i
+        singlelocuseq(M, i)
+    end
+end
+
+function singlelocuseq(M::MainlandIsland, i)
+    D = Deme(N=M.deme.N, k=M.deme.k, A=M.deme.A[i:i])
+    M_ = MainlandIsland(D, M.mhap, M.mdip, M.mainland[i:i])
+    equilibrium(M_)[1]
 end
 
 initpop(model, p0) = initpop(Random.default_rng(), model, p0)

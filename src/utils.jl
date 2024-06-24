@@ -15,4 +15,3 @@ function windowsmooth(x::Vector{T}, y::Vector{T}, window, overlap, dropna=true) 
     end
     return (xs, ys)
 end
-
