@@ -2,6 +2,8 @@
 # Haldane's mapping function
 haldane(d) = 0.5*(1-exp(-2d))     # distance -> recombination rate
 invhaldane(r) = -0.5*log(1 - 2r)  # recombination rate -> distance
+dist2rate = haldane
+rate2dist = invhaldane
 
 function maplength(A::Architecture)
     ml = 100sum(invhaldane.(A.r)) 
@@ -12,10 +14,15 @@ end
 # recombination fractions
 rrates(xs) = hcat(rrates.(Ref(xs), 1:length(xs)+1)...)
 function rrates(xs, j)
-    ys = invhaldane.(xs)
+    ys = invhaldane.(xs)   # rate to distance
     left = reverse(cumsum(ys[j-1:-1:1]))
     rght = cumsum(ys[j:end])
     [haldane.(left); NaN; haldane.(rght)]
+end
+
+# rate matrix from map positions
+function ratematrix(xs)
+    hcat([haldane.(abs.(xs[i] .- xs)) for i=1:length(xs)]...)
 end
 
 # Drosophila data

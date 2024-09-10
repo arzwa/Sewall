@@ -1,4 +1,6 @@
 # Populations and demes
+# 2024-07-31 refactor to allow abstract matrices? so that we can use sparse
+# matrices...
 abstract type AbstractDeme end
 
 """
@@ -21,8 +23,7 @@ function eqpdf(d::Deme)
     @unpack Ne, A = d
     map(1:length(A)) do i
         @unpack u01, u10 = A[i]
-        s, h = sehe(A[i])
-        Wright(Ne*s, Ne*u01, Ne*u10, h)
+        Wright(Ne, u01, u10, sasb(A[i])...)
     end
 end
 
@@ -101,7 +102,7 @@ end
     for i=1:length(A)
         @inbounds tgt[i] = pair[k][i] 
         i == length(A) && break
-        @inbounds k = rand(rng) < A.R[i,i+1] ? 1 + k%2 : k
+        @inbounds k = rand(rng) < A.r[i] ? 1 + k%2 : k
     end
 end
 

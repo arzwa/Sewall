@@ -68,17 +68,17 @@ end
 function pdfs(M::MainlandIsland, focal, migrant)
     @unpack p, pq = migrant
     @unpack mhap, mdip, deme = M
-    @unpack A = deme
+    @unpack A, Ne = deme
     gs = gffs(A, mhap+mdip, focal, migrant)
     map(1:length(A)) do i
-        sa, sb = sasb(A[i])
+        s, h = sehe(A[i])
         me = gs[i][1]*mhap + gs[i][2]*mdip
         # XXX I guess when haploid and iploid mainland frequencies differ
         # we have to multiply mhap and mdip by the relevant frequencies
         # separately
         α = A[i].u10 + me*(1-p[i]) 
         β = A[i].u01 + me*p[i]
-        Wright(deme.Ne, α, β, sa, sb)
+        Wright(Ne*s, Ne*α, Ne*β, h)
     end
 end
 
@@ -131,31 +131,19 @@ end
 # Calculate an m_e profile by adding `n` neutral loci on the map and
 # calculating local m_e.
 # Need to deal with Inf map distances...
-function meprofile(M::MainlandIsland, n; start=0.0, stop=Inf)
+function meprofile(M::MainlandIsland, n; start=0.0, stop=0.0)
+    # start with first locus at `start` M left from the current first locus
+    # let last locus be `stop` M from last locus in architecture.
     @unpack A = M.deme
+    RR, nxs, _, _, _ = get_profile_architecture(A, n, start, stop)
     ds = equilibrium(M)
     p  = mean.(ds)
     pq = expectedpq.(ds)
-    # neutral loci 
-    mappos = mappositions(A)
-    stop  = isfinite(stop) ? stop : maximum(mappos)
-    extra = range(start=start, stop=stop, length=n+2)[2:end-1]
-    xs = [mappos; extra]
-    o  = sortperm(xs)
-    oi = invperm(o)
-    nx = oi[length(mappos)+1:end]  # indices of the neutral mock loci 
-    sx = oi[1:length(mappos)]  # indices of the selected loci
-    xs = xs[o]
-    ds = [xs[i]-xs[i-1] for i=2:length(xs)]
-    rs = haldane.(ds)  # XXX this is silly, as the first step of rrates is invhaldane...
-    R  = rrates(rs)
-    RR = [R[i,j] for i in sx, j in nx]
-    RR[isnan.(RR)] .= 0.5
     # calculate
     migrant = GenePool(M.mainland)
     y, yz = migrant.p, migrant.pq
     m = M.mhap + M.mdip
-    me = map(1:length(nx)) do j
+    me = map(1:n) do j
         x0 = x1 = 0.0
         for i=1:length(A)
             hap, dip = locuseffect(A[i], p[i], pq[i], y[i], yz[i], RR[i,j], m)
@@ -166,7 +154,52 @@ function meprofile(M::MainlandIsland, n; start=0.0, stop=Inf)
         g1 = g0*exp(x1)
         g0*M.mhap + g1*M.mdip 
     end
-    extra, me
+    nxs, me
+end
+
+"""
+This calculates recombination rates for `n` hypothetical neutral loci scattered
+on the genetic map defined by `A`. Returns both the L x n recombination rate
+matrix (where the (i,j)th entry is the recombination rate for selected locus i
+and neutral locus j) as well as the map positions of the neutral loci. This is
+used for calculating m_e profiles.
+"""
+function get_profile_architecture(A::Architecture, n, start, stop)
+    mappos = mappositions(A) 
+    extra = range(start=0.0, stop=maximum(mappos) + start + stop, length=n)
+    xs = [mappos .+ start; extra]
+    o  = sortperm(xs)
+    oi = invperm(o)
+    nx = oi[length(mappos)+1:end]  # indices of the neutral mock loci 
+    sx = oi[1:length(mappos)]  # indices of the selected loci
+    xs = xs[o]
+    # xs are the map locations of all loci
+    R = ratematrix(xs)
+    RR = [R[i,j] for i in sx, j in nx]
+    return RR, extra, xs, sx, nx
+end
+
+function gff_aeschbacher(A::Architecture, n; start=0.0, stop=0.0)
+    R, nxs, xs, sx, nx = get_profile_architecture(A, n, start, stop)
+    gs = map(1:n) do j  # neutral locus j
+        loggff = 0.0
+        function _recurse1(a, i, j)
+            (i > length(A) || sx[i] > nx[j]) && return 0.0
+            b = _recurse1(a, i+1, j)
+            loggff -= log(1 - A[i].s1/(R[i,j] + b))
+            return a - b  # Aeschbacher expressions are for positive s...
+        end
+        function _recurse2(a, i, j)
+            (i <= 0 || sx[i] < nx[j]) && return 0.0
+            b = _recurse2(a, i-1, j)
+            loggff -= log(1 - A[i].s1/(R[i,j] + b))
+            return a - b
+        end
+        _recurse1(0.0, 1, j)
+        _recurse2(0.0, length(A), j)
+        loggff
+    end
+    nxs, exp.(gs)
 end
 
 

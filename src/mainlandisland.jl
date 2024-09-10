@@ -56,7 +56,8 @@ function eqpdf(M::MainlandIsland)
     @unpack Ne, A = deme
     map(1:length(A)) do i
         @unpack u01, u10 = A[i]
-        Wright(Ne, u01, mhap + mdip + u10, sasb(A[i])...)
+        s, h = sehe(A[i])
+        Wright(Ne*s, Ne*u01, Ne*(mhap + mdip + u10), h)
     end
 end
 

@@ -17,7 +17,8 @@ struct Locus{T} <: AbstractLocus
 end
 
 sasb(l::Locus) = (sa=l.s1 + l.s01, sb=l.s11 - 2l.s01)
-sehe(l::Locus) = (se=2l.s1 + l.s11, he=(l.s1 + l.s01)/(2l.s1 + l.s11))
+sehe(l::Locus) = (se=2l.s1 + l.s11, 
+    he=l.s01 + l.s11 == 0.0 ? 0.5 : (l.s1 + l.s01)/(2l.s1 + l.s11))
 
 Base.show(io::IO, l::Locus) = write(io, "Locus$(string(l))")
 Base.string(l::Locus) = @sprintf(
@@ -35,6 +36,8 @@ meanfitness(l::Locus, p, q=1-p) = p*(
     p+exp(l.s01)*q) + exp(l.s1)*q*(exp(l.s01)*p + exp(l.s11)*q)
 
 # Genetic architecture
+# TODO: should get rid of pairwise recombination rates -> they are not needed
+# once we have the rate matrix...
 """
     Architecture
 
@@ -44,13 +47,12 @@ of a crossover** between locus `i` and locus `i+1`.
 """
 struct Architecture{T,V} <: AbstractVector{T}
     loci ::Vector{T}
-    r    ::Vector{V}  # recombination fractions between neighboring loci
     R    ::Matrix{V}  # recombination rates between all loci
-    function Architecture(loci::Vector{T}, r::Vector{V}) where {T<:AbstractLocus,V}
-        @assert(length(r) == length(loci) - 1,
-                "Recombination fraction vector does not match # of loci.")
-        new{T,V}(loci, r, rrates(r))
-    end
+end
+function Architecture(loci::Vector{T}, r::Vector{V}) where {T<:AbstractLocus,V}
+    @assert(length(r) == length(loci) - 1,
+            "Recombination fraction vector does not match # of loci.")
+    Architecture(loci, rrates(r))
 end
 Architecture(ls::Vector{Locus{T}}) where T = Architecture(ls, fill(0.5, length(ls)-1))
 Architecture(l::Locus, L::Int) = Architecture([l for i=1:L], fill(0.5, L-1))
@@ -58,9 +60,8 @@ Architecture(l::Locus, L::Int, r) = Architecture([l for i=1:L], fill(r, L-1))
 
 # AbstractVector methods
 Base.size(A::Architecture) = (length(A.loci),)
-Base.getindex(A::Architecture, i::UnitRange) = Architecture(A.loci[i], A.r[i[1:end-1]]) 
+Base.getindex(A::Architecture, i::UnitRange) = Architecture(A.loci[i], A.R[i,i]) 
 Base.getindex(A::Architecture, i::Int) = A.loci[i]
-Base.vcat(A1::Architecture, A2::Architecture) = Architecture(vcat(A1.loci, A2.loci), vcat(A1.r, A2.r))
 
 haploidfitness(l::Architecture, g) = mapreduce(x->haploidfitness(x...), +, zip(l, g))
 diploidfitness(l::Architecture, h1, h2) = mapreduce(x->diploidfitness(x...), +, zip(l, h1, h2))
@@ -68,7 +69,8 @@ diploidfitness(l::Architecture, h1, h2) = mapreduce(x->diploidfitness(x...), +, 
 #haploidfitness(A::Architecture, g) = haploidfitness(A.loci, g)
 #diploidfitness(A::Architecture, g) = diploidfitness(A.loci, g)
 
-mappositions(A::Architecture) = [0.0; cumsum(invhaldane.(A.r))]
+#mappositions(A::Architecture) = [0.0; cumsum(invhaldane.(A.r))]
+mappositions(A::Architecture) = [0.0 ; invhaldane.(A.R[2:end,1])]
 
 #mappositions(r::Vector) = r == [0.5] ? [0.0] : [0.0; cumsum(invhaldane.(r))]
 
