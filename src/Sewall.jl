@@ -11,7 +11,7 @@ using Printf
 using QuadGK
 using Random
 using Roots
-using ForwardDiff
+#using ForwardDiff
 using Reexport
 using Parameters
 using StatsBase
