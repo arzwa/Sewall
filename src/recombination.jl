@@ -19,82 +19,82 @@ function rrates(xs, j)
 end
 
 # Drosophila data
-drosophila_data_path = joinpath(dirname(pathof(Sewall)), 
-    "..", "data/drosophila-rr-RRCv2.3/Comeron_tables/")
-
-function drosophila_data()
-    function _parse(x)
-        x, d = split(x)
-        parse(Int, x), parse(Float64, d)
-    end
-    rrs = map(readdir(drosophila_data_path, join=true)) do fname
-        rr = map(_parse, readlines(fname))
-        split(fname, "_")[end][1:end-4] => rr
-    end |> Dict
-    delete!(rrs, "chr4")  # there's no data for chr. 4 (tiny one)
-end
-
-# Human data
-human_data_path = joinpath(dirname(pathof(Sewall)), 
-    "..", "data/human-smoothed_map_b37_4/smoothed_map_b37_4/")
-
-function human_data()
-    function _parse(x)
-        x, d = split(x, '\t')[[6,11]]
-        parse(Int, x), parse(Float64, d)
-    end
-    rrs = map(readdir(human_data_path, join=true)) do fname
-        rr = map(_parse, readlines(fname)[2:end])
-        chr = parse(Int64, basename(fname)[4:end-6])
-        chrname = @sprintf "chr%.2d" chr
-        chrname => rr
-    end |> Dict
-    delete!(rrs, "chr23")  # consider autosomes only
-    for (k,v) in rrs  # start the physical map where the genetic map starts (remove 'blind spots')
-        minx = v[1][1]
-        rrs[k] = [(x[1] - minx+1, x[2]) for x in v]
-    end
-    # the human maps record map units in cM vs. physical units (not map
-    # units/physical unit)
-    #                                     ↙ this is arbitrary 
-    dd = Dict(k=>map(i->(v[i][1], max(1e-6, v[i+1][2] - v[i][2])), 
-        1:length(v)-1) for (k,v) in rrs)
-    return sort(dd)
-end
-
-# simpler genetic map (no local variation within chromosome)
-human2_data_path = joinpath(dirname(pathof(Sewall)), 
-    "..", "data/humanmap-matise/table1.csv")
-
-function human2map()
-    function _parse(x)
-        x, d = split(x, ',')[[2,3]]
-        parse(Float64, x), parse(Float64, d)
-    end
-    data = map(_parse, readlines(human2_data_path)[2:end])
-    phys = round.(Int64, first.(data) .* 1e6)
-    starts = cumsum([1; phys])
-    starts = sort(vcat(starts, starts .-1))[2:end-1]
-    dists = vcat([[last.(data)[i] ./ phys[i] ./ 100, Inf] for i=1:length(data)]...)
-    chrs = [i:i+1 for i=1:2:2length(phys)] 
-    GeneticMap(starts, dists, chrs)
-end
-
-function fly2map()
-    @unpack starts, dists, chrs = flymap
-    i = 1
-    xs = map(chrs) do chr
-        ds = [starts[i+1] - starts[i] for i=chr[1:end-1]]  # basepairs
-        phys = sum(ds)  # chromosome length in Mb
-        morgan = sum(dists[chr][1:end-1] .* ds) 
-        ss = [starts[chr[1]], starts[chr[end]]]
-        rd = [morgan/phys, Inf]
-        cs = i:i+1 
-        i += 2
-        ss, rd, cs
-    end
-    GeneticMap(vcat(first.(xs)...), vcat(getindex.(xs, 2)...), last.(xs))
-end
+#drosophila_data_path = joinpath(dirname(pathof(Sewall)), 
+#    "..", "data/drosophila-rr-RRCv2.3/Comeron_tables/")
+#
+#function drosophila_data()
+#    function _parse(x)
+#        x, d = split(x)
+#        parse(Int, x), parse(Float64, d)
+#    end
+#    rrs = map(readdir(drosophila_data_path, join=true)) do fname
+#        rr = map(_parse, readlines(fname))
+#        split(fname, "_")[end][1:end-4] => rr
+#    end |> Dict
+#    delete!(rrs, "chr4")  # there's no data for chr. 4 (tiny one)
+#end
+#
+## Human data
+#human_data_path = joinpath(dirname(pathof(Sewall)), 
+#    "..", "data/human-smoothed_map_b37_4/smoothed_map_b37_4/")
+#
+#function human_data()
+#    function _parse(x)
+#        x, d = split(x, '\t')[[6,11]]
+#        parse(Int, x), parse(Float64, d)
+#    end
+#    rrs = map(readdir(human_data_path, join=true)) do fname
+#        rr = map(_parse, readlines(fname)[2:end])
+#        chr = parse(Int64, basename(fname)[4:end-6])
+#        chrname = @sprintf "chr%.2d" chr
+#        chrname => rr
+#    end |> Dict
+#    delete!(rrs, "chr23")  # consider autosomes only
+#    for (k,v) in rrs  # start the physical map where the genetic map starts (remove 'blind spots')
+#        minx = v[1][1]
+#        rrs[k] = [(x[1] - minx+1, x[2]) for x in v]
+#    end
+#    # the human maps record map units in cM vs. physical units (not map
+#    # units/physical unit)
+#    #                                     ↙ this is arbitrary 
+#    dd = Dict(k=>map(i->(v[i][1], max(1e-6, v[i+1][2] - v[i][2])), 
+#        1:length(v)-1) for (k,v) in rrs)
+#    return sort(dd)
+#end
+#
+## simpler genetic map (no local variation within chromosome)
+#human2_data_path = joinpath(dirname(pathof(Sewall)), 
+#    "..", "data/humanmap-matise/table1.csv")
+#
+#function human2map()
+#    function _parse(x)
+#        x, d = split(x, ',')[[2,3]]
+#        parse(Float64, x), parse(Float64, d)
+#    end
+#    data = map(_parse, readlines(human2_data_path)[2:end])
+#    phys = round.(Int64, first.(data) .* 1e6)
+#    starts = cumsum([1; phys])
+#    starts = sort(vcat(starts, starts .-1))[2:end-1]
+#    dists = vcat([[last.(data)[i] ./ phys[i] ./ 100, Inf] for i=1:length(data)]...)
+#    chrs = [i:i+1 for i=1:2:2length(phys)] 
+#    GeneticMap(starts, dists, chrs)
+#end
+#
+#function fly2map()
+#    @unpack starts, dists, chrs = flymap
+#    i = 1
+#    xs = map(chrs) do chr
+#        ds = [starts[i+1] - starts[i] for i=chr[1:end-1]]  # basepairs
+#        phys = sum(ds)  # chromosome length in Mb
+#        morgan = sum(dists[chr][1:end-1] .* ds) 
+#        ss = [starts[chr[1]], starts[chr[end]]]
+#        rd = [morgan/phys, Inf]
+#        cs = i:i+1 
+#        i += 2
+#        ss, rd, cs
+#    end
+#    GeneticMap(vcat(first.(xs)...), vcat(getindex.(xs, 2)...), last.(xs))
+#end
 
 
 # We need some functions that will determine the rate of recombination between
@@ -145,10 +145,10 @@ function GeneticMap(datadict)
     GeneticMap(starts, dists, chrs)
 end
 
-humanmap  = GeneticMap(human_data())
-flymap    = GeneticMap(drosophila_data())
-humanmap2 = human2map()
-flymap2   = fly2map()
+#humanmap  = GeneticMap(human_data())
+#flymap    = GeneticMap(drosophila_data())
+#humanmap2 = human2map()
+#flymap2   = fly2map()
 
 function distance(m::GeneticMap, x1, x2)
     @unpack starts, dists = m

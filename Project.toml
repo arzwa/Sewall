@@ -1,13 +1,14 @@
 name = "Sewall"
 uuid = "5fff48ab-2f43-4a2f-8da2-d8ef8c66d915"
-authors = ["arzwa <arthur.zwaenepoel@gmail.com>"]
 version = "0.1.0"
+authors = ["arzwa <arthur.zwaenepoel@gmail.com>"]
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 KernelDensity = "5ab0869b-81aa-558d-bb23-cbf5423bbe9b"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
+LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
@@ -18,4 +19,7 @@ Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 ThreadTools = "dbf13d8f-d36e-4350-8970-f3a99faba1a8"
-WrightDistribution = "f1082b7d-a10b-4e22-9c8a-8cfeebeb2a60"
+
+[compat]
+LogExpFunctions = "0.3.29"
+Test = "1.11.0"
